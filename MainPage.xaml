@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:MiReproductorMAUI"
+             x:Class="MiReproductorMAUI.MainPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#121212">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Padding="0,0,0,15">
+
+        <!-- FILA 0: PESTAÑAS SUPERIORES (CANCIONES / FAVORITOS) -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,*" BackgroundColor="#181818" HeightRequest="58">
+            <Grid x:Name="TabSongs" Grid.Column="0" BackgroundColor="#2A2A2A">
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnTabSongsClicked" />
+                </Grid.GestureRecognizers>
+                <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="2">
+                    <Label Text="🎵" FontSize="16" HorizontalOptions="Center" />
+                    <Label x:Name="LblTabSongs" Text="CANCIONES" FontSize="12" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+                <BoxView x:Name="IndicatorSongs" HeightRequest="3" Color="White" VerticalOptions="End" />
+            </Grid>
+
+            <Grid x:Name="TabFavorites" Grid.Column="1" BackgroundColor="Transparent">
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnTabFavoritesClicked" />
+                </Grid.GestureRecognizers>
+                <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="2">
+                    <Label Text="❤️" FontSize="16" HorizontalOptions="Center" />
+                    <Label x:Name="LblTabFavorites" Text="FAVORITOS" FontSize="12" FontAttributes="Bold" TextColor="#9E9E9E" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+                <BoxView x:Name="IndicatorFavorites" HeightRequest="3" Color="White" VerticalOptions="End" IsVisible="False" />
+            </Grid>
+        </Grid>
+
+        <!-- FILA 1: INFORMACIÓN DE PISTA ACTUAL -->
+        <VerticalStackLayout Grid.Row="1" Padding="20,15,20,10" Spacing="6" HorizontalOptions="Center">
+            <Label Text="Music Basic Player"
+                   FontSize="11"
+                   FontAttributes="Bold"
+                   TextColor="#B39DDB"
+                   HorizontalOptions="Center" />
+
+            <Label x:Name="LblCurrentTrack"
+                   Text="Ninguna canción seleccionada"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   TextColor="White"
+                   LineBreakMode="TailTruncation"
+                   HorizontalTextAlignment="Center" />
+
+            <Label x:Name="LblTrackCounter"
+                   Text="Pista 0 de 0"
+                   FontSize="13"
+                   TextColor="#B0B0B0"
+                   HorizontalOptions="Center" />
+        </VerticalStackLayout>
+
+        <!-- FILA 2: BOTÓN SELECCIONAR CARPETA -->
+        <Button x:Name="BtnSelectFolder"
+                Grid.Row="2"
+                Text="📁 Seleccionar canciones"
+                Clicked="OnSelectFolderClicked"
+                BackgroundColor="#2E3B4E"
+                TextColor="White"
+                FontAttributes="Bold"
+                CornerRadius="22"
+                HeightRequest="45"
+                Margin="20,5,20,10" />
+
+        <!-- FILA 3: LISTA DE REPRODUCCIÓN -->
+        <Grid Grid.Row="3" RowDefinitions="Auto,*" Padding="15,5">
+            <Label x:Name="LblListHeader"
+                   Grid.Row="0"
+                   Text="LISTA DE REPRODUCCIÓN"
+                   FontSize="12"
+                   FontAttributes="Bold"
+                   TextColor="#9E9E9E"
+                   Margin="5,0,0,8" />
+
+            <CollectionView x:Name="TracksCollectionView"
+                            Grid.Row="1"
+                            SelectionMode="Single"
+                            SelectionChanged="OnTrackSelected">
+                <CollectionView.EmptyView>
+                    <Label Text="No hay canciones disponibles en esta sección."
+                           TextColor="#757575"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="local:MusicTrack">
+                        <Grid ColumnDefinitions="Auto,*,Auto" Padding="10,12" ColumnSpacing="12">
+                            <Label Grid.Column="0"
+                                   Text="🎵"
+                                   TextColor="#B39DDB"
+                                   FontSize="16"
+                                   VerticalOptions="Center" />
+
+                            <Label Grid.Column="1"
+                                   Text="{Binding Title}"
+                                   TextColor="White"
+                                   FontSize="15"
+                                   LineBreakMode="TailTruncation"
+                                   VerticalOptions="Center" />
+
+                            <Button Grid.Column="2"
+                                    Text="{Binding FavoriteIcon}"
+                                    BackgroundColor="Transparent"
+                                    FontSize="18"
+                                    Padding="4"
+                                    WidthRequest="40"
+                                    HeightRequest="40"
+                                    Clicked="OnToggleFavoriteClicked"
+                                    CommandParameter="{Binding .}" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+
+        <!-- FILA 4: CONTROLES DE REPRODUCCIÓN INFERIORES -->
+        <VerticalStackLayout Grid.Row="4" Padding="20,10,20,5" Spacing="10">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                <Label x:Name="LblElapsed"
+                       Grid.Column="0"
+                       Text="0:00"
+                       FontSize="12"
+                       TextColor="#B0B0B0"
+                       VerticalOptions="Center" />
+
+                <Slider x:Name="ProgressSlider"
+                        Grid.Column="1"
+                        Minimum="0"
+                        Maximum="100"
+                        Value="0"
+                        MinimumTrackColor="#B39DDB"
+                        MaximumTrackColor="#424242"
+                        ThumbColor="#D1C4E9"
+                        DragStarted="OnSliderDragStarted"
+                        DragCompleted="OnSliderDragCompleted" />
+
+                <Label x:Name="LblDuration"
+                       Grid.Column="2"
+                       Text="0:00"
+                       FontSize="12"
+                       TextColor="#B0B0B0"
+                       VerticalOptions="Center" />
+            </Grid>
+
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="20">
+                <Button Text="⏮"
+                        Clicked="OnPreviousClicked"
+                        BackgroundColor="#2E3B4E"
+                        TextColor="White"
+                        FontSize="20"
+                        WidthRequest="68"
+                        HeightRequest="50"
+                        CornerRadius="12" />
+
+                <Button x:Name="BtnPlayPause"
+                        Text="▶"
+                        Clicked="OnPlayPauseClicked"
+                        BackgroundColor="#2E3B4E"
+                        TextColor="White"
+                        FontSize="22"
+                        WidthRequest="78"
+                        HeightRequest="50"
+                        CornerRadius="12" />
+
+                <Button Text="⏭"
+                        Clicked="OnNextClicked"
+                        BackgroundColor="#2E3B4E"
+                        TextColor="White"
+                        FontSize="20"
+                        WidthRequest="68"
+                        HeightRequest="50"
+                        CornerRadius="12" />
+            </HorizontalStackLayout>
+
+            <Label x:Name="LblStatus"
+                   Text="Detenido"
+                   FontSize="12"
+                   TextColor="#9E9E9E"
+                   HorizontalOptions="Center" />
+        </VerticalStackLayout>
+
+    </Grid>
+</ContentPage>
