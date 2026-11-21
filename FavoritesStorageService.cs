@@ -22,10 +22,11 @@ public class FavoritesStorageService
             var json = await File.ReadAllTextAsync(_filePath);
             var savedTracks = JsonSerializer.Deserialize<List<MusicTrack>>(json) ?? new List<MusicTrack>();
 
-            // Filtra únicamente los archivos que siguen existiendo en el dispositivo
-            var validTracks = savedTracks
-                .Where(t => !string.IsNullOrWhiteSpace(t.UriString) && _folderPicker.FileExists(t.UriString))
-                .ToList();
+            // Filtra únicamente los archivos que siguen existiendo en el dispositivo (en segundo plano)
+            var validTracks = await Task.Run(() =>
+                savedTracks
+                    .Where(t => !string.IsNullOrWhiteSpace(t.UriString) && _folderPicker.FileExists(t.UriString))
+                    .ToList());
 
             foreach (var track in validTracks)
             {

@@ -1,100 +1,63 @@
-﻿using Android.Content;
+﻿using Android;
+using Android.Content;
 using Android.Provider;
 using System.Diagnostics;
 using Uri = Android.Net.Uri;
 
 namespace MiReproductorMAUI.Platforms.Android;
 
+public class AudioStoragePermission : Permissions.BasePlatformPermission
+{
+    public override (string androidPermission, bool isRuntime)[] RequiredPermissions =>
+        OperatingSystem.IsAndroidVersionAtLeast(33)
+            ? new[] { ("android.permission.READ_MEDIA_AUDIO", true) }
+            : new[] { (Manifest.Permission.ReadExternalStorage, true) };
+}
+
 public class AndroidFolderPicker : IFolderPicker
 {
-    public const int RequestCode = 1001;
-    private const string SavedFolderUriKey = "SavedFolderTreeUri";
-    private static TaskCompletionSource<List<MusicTrack>>? _tcs;
-
-    public Task<List<MusicTrack>> PickFolderAndGetTracksAsync()
+    public async Task<List<MusicTrack>> LoadDeviceTracksAsync()
     {
-        if (_tcs != null) return _tcs.Task;
-
-        _tcs = new TaskCompletionSource<List<MusicTrack>>();
-
-        MainThread.BeginInvokeOnMainThread(() =>
+        var hasPermission = await EnsureAudioPermissionAsync();
+        if (!hasPermission)
         {
-            try
-            {
-                var intent = new Intent(Intent.ActionOpenDocumentTree);
-                intent.AddFlags(ActivityFlags.GrantReadUriPermission |
-                                ActivityFlags.GrantPersistableUriPermission |
-                                ActivityFlags.GrantPrefixUriPermission);
-                Platform.CurrentActivity?.StartActivityForResult(intent, RequestCode);
-            }
-            catch (Exception ex)
-            {
-                _tcs?.TrySetException(ex);
-                _tcs = null;
-            }
-        });
-
-        return _tcs.Task;
-    }
-
-    public static Task HandleActivityResultAsync(Intent? data)
-    {
-        if (_tcs == null) return Task.CompletedTask;
-
-        if (data?.Data == null)
-        {
-            Debug.WriteLine("[FolderPicker] Usuario canceló o no envió datos.");
-            _tcs.TrySetResult(new List<MusicTrack>());
-            _tcs = null;
-            return Task.CompletedTask;
+            Debug.WriteLine("[MusicScanner] Permiso de lectura de audio denegado.");
+            return new List<MusicTrack>();
         }
 
-        var treeUri = data.Data;
+        return await Task.Run(ScanDeviceAudioTracks);
+    }
 
+    private static async Task<bool> EnsureAudioPermissionAsync()
+    {
         try
         {
-            Platform.AppContext.ContentResolver?.TakePersistableUriPermission(
-                treeUri, ActivityFlags.GrantReadUriPermission);
+            var status = await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                var current = await Permissions.CheckStatusAsync<AudioStoragePermission>();
+                if (current != PermissionStatus.Granted)
+                {
+                    current = await Permissions.RequestAsync<AudioStoragePermission>();
+                }
 
-            Preferences.Set(SavedFolderUriKey, treeUri.ToString());
+                if (OperatingSystem.IsAndroidVersionAtLeast(33))
+                {
+                    var notifStatus = await Permissions.CheckStatusAsync<Permissions.PostNotifications>();
+                    if (notifStatus != PermissionStatus.Granted)
+                    {
+                        await Permissions.RequestAsync<Permissions.PostNotifications>();
+                    }
+                }
 
-            var tracks = ReadTracksFromTreeUri(treeUri);
-            Debug.WriteLine($"[FolderPicker] Total archivos encontrados: {tracks.Count}");
-            _tcs.TrySetResult(tracks);
+                return current;
+            });
+
+            return status == PermissionStatus.Granted;
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[FolderPicker] Error: {ex.Message}");
-            _tcs.TrySetException(ex);
-        }
-        finally
-        {
-            _tcs = null;
-        }
-
-        return Task.CompletedTask;
-    }
-
-    public Task<List<MusicTrack>> LoadSavedFolderTracksAsync()
-    {
-        var savedUri = Preferences.Get(SavedFolderUriKey, string.Empty);
-        if (string.IsNullOrEmpty(savedUri))
-            return Task.FromResult(new List<MusicTrack>());
-
-        try
-        {
-            var treeUri = Uri.Parse(savedUri);
-            if (treeUri == null)
-                return Task.FromResult(new List<MusicTrack>());
-
-            var tracks = ReadTracksFromTreeUri(treeUri);
-            return Task.FromResult(tracks);
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[FolderPicker] Error al cargar carpeta guardada: {ex.Message}");
-            Preferences.Remove(SavedFolderUriKey);
-            return Task.FromResult(new List<MusicTrack>());
+            Debug.WriteLine($"[MusicScanner] Error solicitando permisos: {ex.Message}");
+            return false;
         }
     }
 
@@ -102,13 +65,17 @@ public class AndroidFolderPicker : IFolderPicker
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(uriString))
+                return false;
+
+            if (!uriString.StartsWith("content://", StringComparison.OrdinalIgnoreCase))
+                return File.Exists(uriString);
+
             var uri = Uri.Parse(uriString);
             if (uri == null) return false;
 
             using var cursor = Platform.AppContext.ContentResolver?.Query(
-                uri,
-                new[] { DocumentsContract.Document.ColumnDocumentId },
-                null, null, null);
+                uri, null, null, null, null);
 
             return cursor != null && cursor.MoveToFirst();
         }
@@ -118,51 +85,156 @@ public class AndroidFolderPicker : IFolderPicker
         }
     }
 
-    private static List<MusicTrack> ReadTracksFromTreeUri(Uri treeUri)
+    private static List<MusicTrack> ScanDeviceAudioTracks()
     {
         var tracks = new List<MusicTrack>();
+        var collectionUri = MediaStore.Audio.Media.ExternalContentUri;
+        if (collectionUri == null)
+            return tracks;
 
-        var childrenUri = DocumentsContract.BuildChildDocumentsUriUsingTree(
-            treeUri,
-            DocumentsContract.GetTreeDocumentId(treeUri));
-
-        var projection = new[]
+        var projectionList = new List<string>
         {
-            DocumentsContract.Document.ColumnDocumentId,
-            DocumentsContract.Document.ColumnDisplayName,
-            DocumentsContract.Document.ColumnMimeType
+            MediaStore.Audio.Media.InterfaceConsts.Id,
+            MediaStore.Audio.Media.InterfaceConsts.DisplayName,
+            MediaStore.Audio.Media.InterfaceConsts.Title,
+            MediaStore.Audio.Media.InterfaceConsts.Data
         };
 
-        using var cursor = Platform.AppContext.ContentResolver?.Query(childrenUri, projection, null, null, null);
-        if (cursor == null) return tracks;
-
-        while (cursor.MoveToNext())
+        if (OperatingSystem.IsAndroidVersionAtLeast(29))
         {
-            var docId = cursor.GetString(0);
-            var fileName = cursor.GetString(1) ?? "Desconocido";
-            var mimeType = cursor.GetString(2);
+            projectionList.Add("bucket_display_name");
+            projectionList.Add("relative_path");
+        }
 
-            bool isAudio = (mimeType != null && mimeType.StartsWith("audio/")) ||
-                           fileName.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase) ||
-                           fileName.EndsWith(".m4a", StringComparison.OrdinalIgnoreCase) ||
-                           fileName.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) ||
-                           fileName.EndsWith(".flac", StringComparison.OrdinalIgnoreCase) ||
-                           fileName.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase);
+        var projection = projectionList.ToArray();
 
-            if (isAudio && docId != null)
+        try
+        {
+            using var cursor = Platform.AppContext.ContentResolver?.Query(
+                collectionUri,
+                projection,
+                null,
+                null,
+                null);
+
+            if (cursor == null)
+                return tracks;
+
+            int idCol = cursor.GetColumnIndex(MediaStore.Audio.Media.InterfaceConsts.Id);
+            int displayNameCol = cursor.GetColumnIndex(MediaStore.Audio.Media.InterfaceConsts.DisplayName);
+            int titleCol = cursor.GetColumnIndex(MediaStore.Audio.Media.InterfaceConsts.Title);
+            int dataCol = cursor.GetColumnIndex(MediaStore.Audio.Media.InterfaceConsts.Data);
+            int bucketCol = cursor.GetColumnIndex("bucket_display_name");
+            int relativePathCol = cursor.GetColumnIndex("relative_path");
+
+            while (cursor.MoveToNext())
             {
-                var documentUri = DocumentsContract.BuildDocumentUriUsingTree(treeUri, docId);
-                if (documentUri != null)
+                if (idCol < 0) continue;
+
+                long id = cursor.GetLong(idCol);
+                string? displayName = displayNameCol >= 0 ? cursor.GetString(displayNameCol) : null;
+                string? title = titleCol >= 0 ? cursor.GetString(titleCol) : null;
+                string? fullPath = dataCol >= 0 ? cursor.GetString(dataCol) : null;
+                string? bucketName = bucketCol >= 0 ? cursor.GetString(bucketCol) : null;
+                string? relativePath = relativePathCol >= 0 ? cursor.GetString(relativePathCol) : null;
+
+                // Ignorar sonidos internos del sistema Android
+                if (!string.IsNullOrEmpty(fullPath) &&
+                    fullPath.StartsWith("/system/", StringComparison.OrdinalIgnoreCase))
                 {
-                    tracks.Add(new MusicTrack
-                    {
-                        Title = Path.GetFileNameWithoutExtension(fileName),
-                        UriString = documentUri.ToString()!
-                    });
+                    continue;
+                }
+
+                // Validar que sea un archivo de audio reconocido si tenemos nombre o ruta
+                string nameToCheck = displayName ?? fullPath ?? string.Empty;
+                if (!string.IsNullOrEmpty(nameToCheck) && !IsSupportedAudioFile(nameToCheck))
+                {
+                    continue;
+                }
+
+                var contentUri = ContentUris.WithAppendedId(collectionUri, id);
+                if (contentUri == null) continue;
+
+                string trackTitle = !string.IsNullOrWhiteSpace(displayName)
+                    ? Path.GetFileNameWithoutExtension(displayName)
+                    : (!string.IsNullOrWhiteSpace(title) ? title : $"Pista {id}");
+
+                var (folderPath, albumName) = ExtractFolderAndAlbum(fullPath, relativePath, bucketName);
+
+                tracks.Add(new MusicTrack
+                {
+                    Title = trackTitle,
+                    UriString = contentUri.ToString()!,
+                    AlbumName = albumName,
+                    FolderPath = folderPath
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[MusicScanner] Error escaneando MediaStore: {ex.Message}");
+        }
+
+        return tracks
+            .OrderBy(t => t.Title, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+    }
+
+    private static bool IsSupportedAudioFile(string fileName)
+    {
+        return fileName.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase) ||
+               fileName.EndsWith(".m4a", StringComparison.OrdinalIgnoreCase) ||
+               fileName.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) ||
+               fileName.EndsWith(".flac", StringComparison.OrdinalIgnoreCase) ||
+               fileName.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase) ||
+               fileName.EndsWith(".aac", StringComparison.OrdinalIgnoreCase) ||
+               fileName.EndsWith(".opus", StringComparison.OrdinalIgnoreCase) ||
+               fileName.EndsWith(".wma", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static (string folderPath, string albumName) ExtractFolderAndAlbum(
+        string? fullPath,
+        string? relativePath,
+        string? bucketName)
+    {
+        if (!string.IsNullOrWhiteSpace(fullPath))
+        {
+            var dir = Path.GetDirectoryName(fullPath.Replace('\\', '/'))?.Replace('\\', '/');
+            if (!string.IsNullOrWhiteSpace(dir))
+            {
+                var trimmed = dir.TrimEnd('/');
+                var lastSlash = trimmed.LastIndexOf('/');
+                var folderName = lastSlash >= 0 ? trimmed[(lastSlash + 1)..] : trimmed;
+
+                if (!string.IsNullOrWhiteSpace(folderName))
+                {
+                    return (trimmed, MapFriendlyFolderName(folderName));
                 }
             }
         }
 
-        return tracks.OrderBy(t => t.Title).ToList();
+        if (!string.IsNullOrWhiteSpace(relativePath))
+        {
+            var trimmedRel = relativePath.Replace('\\', '/').Trim('/');
+            if (!string.IsNullOrWhiteSpace(trimmedRel))
+            {
+                var lastSlash = trimmedRel.LastIndexOf('/');
+                var folderName = lastSlash >= 0 ? trimmedRel[(lastSlash + 1)..] : trimmedRel;
+                return (trimmedRel, MapFriendlyFolderName(folderName));
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(bucketName))
+        {
+            var friendly = MapFriendlyFolderName(bucketName);
+            return (friendly, friendly);
+        }
+
+        return ("Almacenamiento interno", "Almacenamiento interno");
+    }
+
+    private static string MapFriendlyFolderName(string rawName)
+    {
+        return rawName == "0" ? "Almacenamiento interno" : rawName;
     }
 }

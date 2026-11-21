@@ -9,21 +9,28 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<ApplicationTitle>Music Player Basic</ApplicationTitle>
-		<ApplicationId>com.reproductor.mireproductor</ApplicationId>
-		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
-		<ApplicationVersion>1</ApplicationVersion>
+		<ApplicationId>com.musicbasicplayer.reproductor</ApplicationId>
+		<ApplicationDisplayVersion>2.0</ApplicationDisplayVersion>
+		<ApplicationVersion>2</ApplicationVersion>
 		<SupportedOSPlatformVersion>23.0</SupportedOSPlatformVersion>
+		<EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+		<AndroidPackageFormat>apk</AndroidPackageFormat>
+		<AndroidUseAapt2>true</AndroidUseAapt2>
+		<AndroidCreatePackagePerAbi>false</AndroidCreatePackagePerAbi>
 	</PropertyGroup>
 
 	<!-- Configuración específica para que el APK funcione en cualquier teléfono -->
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
-		<AndroidPackageFormat>apk</AndroidPackageFormat>
 		<RuntimeIdentifiers>android-arm64;android-arm</RuntimeIdentifiers>
-		<EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
-		<AndroidUseAapt2>true</AndroidUseAapt2>
-		<AndroidCreatePackagePerAbi>false</AndroidCreatePackagePerAbi>
 	</PropertyGroup>
-	
+
+	<!-- Firmar automáticamente el APK al compilar (Debug o Release) y asegurar que ambos archivos .apk estén firmados -->
+	<Target Name="AutoSignApkAfterBuild" AfterTargets="Build" DependsOnTargets="SignAndroidPackage">
+		<Copy SourceFiles="$(OutputPath)$(ApplicationId)-Signed.apk"
+		      DestinationFiles="$(OutputPath)$(ApplicationId).apk"
+		      Condition="Exists('$(OutputPath)$(ApplicationId)-Signed.apk')" />
+	</Target>
+
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="$(MauiVersion)" />
@@ -33,6 +40,5 @@
 	<ItemGroup>
 		<AndroidResource Include="Platforms\Android\Resources\**\*" />
 	</ItemGroup>
-
 
 </Project>

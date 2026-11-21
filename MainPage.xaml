@@ -3,187 +3,857 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:MiReproductorMAUI"
              x:Class="MiReproductorMAUI.MainPage"
+             NavigationPage.HasNavigationBar="False"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="#121212">
+             BackgroundColor="#131118">
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Padding="0,0,0,15">
+    <!-- CONTENEDOR RAÍZ: Superpone la vista de biblioteca + mini reproductor y el reproductor expandible -->
+    <Grid>
 
-        <!-- FILA 0: PESTAÑAS SUPERIORES (CANCIONES / FAVORITOS) -->
-        <Grid Grid.Row="0" ColumnDefinitions="*,*" BackgroundColor="#181818" HeightRequest="58">
-            <Grid x:Name="TabSongs" Grid.Column="0" BackgroundColor="#2A2A2A">
-                <Grid.GestureRecognizers>
-                    <TapGestureRecognizer Tapped="OnTabSongsClicked" />
-                </Grid.GestureRecognizers>
-                <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="2">
-                    <Label Text="🎵" FontSize="16" HorizontalOptions="Center" />
-                    <Label x:Name="LblTabSongs" Text="CANCIONES" FontSize="12" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" />
-                </VerticalStackLayout>
-                <BoxView x:Name="IndicatorSongs" HeightRequest="3" Color="White" VerticalOptions="End" />
-            </Grid>
+        <!-- ==================== CAPA 1: BIBLIOTECA PRINCIPAL + MINI REPRODUCTOR ==================== -->
+        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
 
-            <Grid x:Name="TabFavorites" Grid.Column="1" BackgroundColor="Transparent">
-                <Grid.GestureRecognizers>
-                    <TapGestureRecognizer Tapped="OnTabFavoritesClicked" />
-                </Grid.GestureRecognizers>
-                <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="2">
-                    <Label Text="❤️" FontSize="16" HorizontalOptions="Center" />
-                    <Label x:Name="LblTabFavorites" Text="FAVORITOS" FontSize="12" FontAttributes="Bold" TextColor="#9E9E9E" HorizontalOptions="Center" />
-                </VerticalStackLayout>
-                <BoxView x:Name="IndicatorFavorites" HeightRequest="3" Color="White" VerticalOptions="End" IsVisible="False" />
-            </Grid>
-        </Grid>
-
-        <!-- FILA 1: INFORMACIÓN DE PISTA ACTUAL -->
-        <VerticalStackLayout Grid.Row="1" Padding="20,15,20,10" Spacing="6" HorizontalOptions="Center">
-            <Label Text="Music Basic Player"
-                   FontSize="11"
-                   FontAttributes="Bold"
-                   TextColor="#B39DDB"
-                   HorizontalOptions="Center" />
-
-            <Label x:Name="LblCurrentTrack"
-                   Text="Ninguna canción seleccionada"
-                   FontSize="20"
-                   FontAttributes="Bold"
-                   TextColor="White"
-                   LineBreakMode="TailTruncation"
-                   HorizontalTextAlignment="Center" />
-
-            <Label x:Name="LblTrackCounter"
-                   Text="Pista 0 de 0"
-                   FontSize="13"
-                   TextColor="#B0B0B0"
-                   HorizontalOptions="Center" />
-        </VerticalStackLayout>
-
-        <!-- FILA 2: BOTÓN SELECCIONAR CARPETA -->
-        <Button x:Name="BtnSelectFolder"
-                Grid.Row="2"
-                Text="📁 Seleccionar canciones"
-                Clicked="OnSelectFolderClicked"
-                BackgroundColor="#2E3B4E"
-                TextColor="White"
-                FontAttributes="Bold"
-                CornerRadius="22"
-                HeightRequest="45"
-                Margin="20,5,20,10" />
-
-        <!-- FILA 3: LISTA DE REPRODUCCIÓN -->
-        <Grid Grid.Row="3" RowDefinitions="Auto,*" Padding="15,5">
-            <Label x:Name="LblListHeader"
-                   Grid.Row="0"
-                   Text="LISTA DE REPRODUCCIÓN"
-                   FontSize="12"
-                   FontAttributes="Bold"
-                   TextColor="#9E9E9E"
-                   Margin="5,0,0,8" />
-
-            <CollectionView x:Name="TracksCollectionView"
-                            Grid.Row="1"
-                            SelectionMode="Single"
-                            SelectionChanged="OnTrackSelected">
-                <CollectionView.EmptyView>
-                    <Label Text="No hay canciones disponibles en esta sección."
-                           TextColor="#757575"
+            <!-- FILA 0: PESTAÑAS SUPERIORES (PISTAS / ÁLBUM / FAVORITOS) -->
+            <Grid Grid.Row="0" ColumnDefinitions="*,*,*" BackgroundColor="#16141C" HeightRequest="50" Padding="0,4,0,0">
+                <!-- PESTAÑA PISTAS -->
+                <Grid x:Name="TabSongs" Grid.Column="0" BackgroundColor="Transparent">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnTabSongsClicked" />
+                    </Grid.GestureRecognizers>
+                    <Label x:Name="LblTabSongs"
+                           Text="PISTAS"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           TextColor="#B366FF"
                            HorizontalOptions="Center"
                            VerticalOptions="Center" />
-                </CollectionView.EmptyView>
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="local:MusicTrack">
-                        <Grid ColumnDefinitions="Auto,*,Auto" Padding="10,12" ColumnSpacing="12">
-                            <Label Grid.Column="0"
-                                   Text="🎵"
-                                   TextColor="#B39DDB"
-                                   FontSize="16"
-                                   VerticalOptions="Center" />
+                    <BoxView x:Name="IndicatorSongs"
+                             HeightRequest="3"
+                             Color="#A855F7"
+                             VerticalOptions="End"
+                             Margin="14,0" />
+                </Grid>
 
-                            <Label Grid.Column="1"
-                                   Text="{Binding Title}"
-                                   TextColor="White"
-                                   FontSize="15"
-                                   LineBreakMode="TailTruncation"
-                                   VerticalOptions="Center" />
+                <!-- PESTAÑA ÁLBUM -->
+                <Grid x:Name="TabAlbums" Grid.Column="1" BackgroundColor="Transparent">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnTabAlbumsClicked" />
+                    </Grid.GestureRecognizers>
+                    <Label x:Name="LblTabAlbums"
+                           Text="ÁLBUM"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           TextColor="#8E889C"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+                    <BoxView x:Name="IndicatorAlbums"
+                             HeightRequest="3"
+                             Color="#A855F7"
+                             VerticalOptions="End"
+                             Margin="14,0"
+                             IsVisible="False" />
+                </Grid>
 
-                            <Button Grid.Column="2"
-                                    Text="{Binding FavoriteIcon}"
-                                    BackgroundColor="Transparent"
-                                    FontSize="18"
-                                    Padding="4"
-                                    WidthRequest="40"
-                                    HeightRequest="40"
-                                    Clicked="OnToggleFavoriteClicked"
-                                    CommandParameter="{Binding .}" />
-                        </Grid>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
-        </Grid>
-
-        <!-- FILA 4: CONTROLES DE REPRODUCCIÓN INFERIORES -->
-        <VerticalStackLayout Grid.Row="4" Padding="20,10,20,5" Spacing="10">
-            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                <Label x:Name="LblElapsed"
-                       Grid.Column="0"
-                       Text="0:00"
-                       FontSize="12"
-                       TextColor="#B0B0B0"
-                       VerticalOptions="Center" />
-
-                <Slider x:Name="ProgressSlider"
-                        Grid.Column="1"
-                        Minimum="0"
-                        Maximum="100"
-                        Value="0"
-                        MinimumTrackColor="#B39DDB"
-                        MaximumTrackColor="#424242"
-                        ThumbColor="#D1C4E9"
-                        DragStarted="OnSliderDragStarted"
-                        DragCompleted="OnSliderDragCompleted" />
-
-                <Label x:Name="LblDuration"
-                       Grid.Column="2"
-                       Text="0:00"
-                       FontSize="12"
-                       TextColor="#B0B0B0"
-                       VerticalOptions="Center" />
+                <!-- PESTAÑA FAVORITOS -->
+                <Grid x:Name="TabFavorites" Grid.Column="2" BackgroundColor="Transparent">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnTabFavoritesClicked" />
+                    </Grid.GestureRecognizers>
+                    <Label x:Name="LblTabFavorites"
+                           Text="FAVORITOS"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           TextColor="#8E889C"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+                    <BoxView x:Name="IndicatorFavorites"
+                             HeightRequest="3"
+                             Color="#A855F7"
+                             VerticalOptions="End"
+                             Margin="14,0"
+                             IsVisible="False" />
+                </Grid>
             </Grid>
 
-            <HorizontalStackLayout HorizontalOptions="Center" Spacing="20">
-                <Button Text="⏮"
-                        Clicked="OnPreviousClicked"
-                        BackgroundColor="#2E3B4E"
-                        TextColor="White"
-                        FontSize="20"
-                        WidthRequest="68"
-                        HeightRequest="50"
-                        CornerRadius="12" />
+            <!-- FILA 1: BARRA DE BÚSQUEDA -->
+            <Border Grid.Row="1"
+                    Margin="16,10,16,4"
+                    Padding="12,2"
+                    BackgroundColor="#1F1C27"
+                    Stroke="#322C40"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 14"
+                    HeightRequest="44">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                    <!-- Lupa vectorial -->
+                    <Path Grid.Column="0"
+                          Data="M 11,4 A 7,7 0 1 0 11,18 A 7,7 0 1 0 11,4 Z M 16.2,16.2 L 21,21"
+                          Stroke="#9A8FB0"
+                          StrokeThickness="2"
+                          StrokeLineCap="Round"
+                          Aspect="Uniform"
+                          WidthRequest="17"
+                          HeightRequest="17"
+                          VerticalOptions="Center" />
 
-                <Button x:Name="BtnPlayPause"
-                        Text="▶"
-                        Clicked="OnPlayPauseClicked"
-                        BackgroundColor="#2E3B4E"
-                        TextColor="White"
-                        FontSize="22"
-                        WidthRequest="78"
-                        HeightRequest="50"
-                        CornerRadius="12" />
+                    <Entry x:Name="SearchEntry"
+                           Grid.Column="1"
+                           Placeholder="Buscar entre tus canciones o álbumes..."
+                           PlaceholderColor="#766E88"
+                           TextColor="White"
+                           FontSize="14"
+                           BackgroundColor="Transparent"
+                           VerticalOptions="Center"
+                           ClearButtonVisibility="Never"
+                           TextChanged="OnSearchTextChanged" />
 
-                <Button Text="⏭"
-                        Clicked="OnNextClicked"
-                        BackgroundColor="#2E3B4E"
-                        TextColor="White"
-                        FontSize="20"
-                        WidthRequest="68"
-                        HeightRequest="50"
-                        CornerRadius="12" />
-            </HorizontalStackLayout>
+                    <Grid x:Name="BtnClearSearch"
+                          Grid.Column="2"
+                          IsVisible="False"
+                          WidthRequest="32"
+                          HeightRequest="32"
+                          BackgroundColor="Transparent"
+                          VerticalOptions="Center">
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnClearSearchClicked" />
+                        </Grid.GestureRecognizers>
+                        <Path Data="M 6,6 L 18,18 M 18,6 L 6,18"
+                              Stroke="#9A8FB0"
+                              StrokeThickness="2"
+                              StrokeLineCap="Round"
+                              Aspect="Uniform"
+                              WidthRequest="13"
+                              HeightRequest="13"
+                              HorizontalOptions="Center"
+                              VerticalOptions="Center" />
+                    </Grid>
+                </Grid>
+            </Border>
 
-            <Label x:Name="LblStatus"
-                   Text="Detenido"
-                   FontSize="12"
-                   TextColor="#9E9E9E"
-                   HorizontalOptions="Center" />
-        </VerticalStackLayout>
+            <!-- FILA 2: SUBCABECERA ("Music Basic Player" + Contador de pistas + Botón Volver/Actualizar) -->
+            <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Padding="18,6,18,6" ColumnSpacing="10">
+                <Border x:Name="BtnBackToAlbums"
+                        Grid.Column="0"
+                        IsVisible="False"
+                        BackgroundColor="#2C223B"
+                        Stroke="#5B348A"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 17"
+                        HeightRequest="34"
+                        Padding="12,0"
+                        VerticalOptions="Center">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnBackToAlbumsClicked" />
+                    </Border.GestureRecognizers>
+                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                        <Path Data="M 19,12 H 5 M 12,19 L 5,12 L 12,5"
+                              Stroke="#D8B4FE"
+                              StrokeThickness="2.2"
+                              StrokeLineCap="Round"
+                              StrokeLineJoin="Round"
+                              Aspect="Uniform"
+                              WidthRequest="14"
+                              HeightRequest="14"
+                              VerticalOptions="Center" />
+                        <Label Text="Álbumes"
+                               TextColor="#D8B4FE"
+                               FontSize="12"
+                               FontAttributes="Bold"
+                               VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                </Border>
+
+                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                    <Label Text="Music Basic Player"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           TextColor="#A855F7" />
+                    <Label x:Name="LblListHeader"
+                           Text="0 Pistas"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="#E2DCEB"
+                           LineBreakMode="TailTruncation" />
+                </VerticalStackLayout>
+
+                <!-- Icono vectorial de refrescar/sincronizar -->
+                <Grid Grid.Column="2"
+                      WidthRequest="36"
+                      HeightRequest="36"
+                      BackgroundColor="Transparent"
+                      VerticalOptions="Center">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnRescanClicked" />
+                    </Grid.GestureRecognizers>
+                    <Path Data="M 21,12 A 9,9 0 1 1 18.36,5.64 M 21,3 V 9 H 15"
+                          Stroke="#9E94AD"
+                          StrokeThickness="2"
+                          StrokeLineCap="Round"
+                          StrokeLineJoin="Round"
+                          Aspect="Uniform"
+                          WidthRequest="18"
+                          HeightRequest="18"
+                          HorizontalOptions="Center"
+                          VerticalOptions="Center" />
+                </Grid>
+            </Grid>
+
+            <!-- FILA 3: LISTA DE PISTAS EN TARJETAS / LISTA DE ÁLBUMES -->
+            <Grid x:Name="LibraryContentContainer" Grid.Row="3" Padding="14,0,14,6">
+
+                <!-- LISTA DE PISTAS -->
+                <CollectionView x:Name="TracksCollectionView"
+                                SelectionMode="None"
+                                ItemSizingStrategy="MeasureFirstItem">
+                    <CollectionView.EmptyView>
+                        <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="10" Padding="24">
+                            <Path Data="M 9,18 V 5 L 21,3 V 16 M 6,21 A 3,3 0 1 0 6,15 A 3,3 0 1 0 6,21 Z M 18,19 A 3,3 0 1 0 18,13 A 3,3 0 1 0 18,19 Z"
+                                  Stroke="#4A3F5E"
+                                  StrokeThickness="2"
+                                  StrokeLineCap="Round"
+                                  StrokeLineJoin="Round"
+                                  Aspect="Uniform"
+                                  WidthRequest="38"
+                                  HeightRequest="38"
+                                  HorizontalOptions="Center" />
+                            <Label x:Name="LblEmptyTracks"
+                                   Text="No se encontraron pistas de audio."
+                                   TextColor="#7E778C"
+                                   FontSize="14"
+                                   HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="local:MusicTrack">
+                            <Border Margin="0,5"
+                                    Padding="12,10"
+                                    BackgroundColor="{Binding CardBackgroundColor}"
+                                    Stroke="{Binding CardBorderColor}"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 14">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnTrackCardTapped" CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                    <!-- Recuadro de nota musical en vector -->
+                                    <Border Grid.Column="0"
+                                            WidthRequest="42"
+                                            HeightRequest="42"
+                                            BackgroundColor="#181520"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 10"
+                                            VerticalOptions="Center">
+                                        <Path Data="M 9,18 V 6 L 19,4 V 16 M 7,20 A 2.5,2.5 0 1 0 7,15 A 2.5,2.5 0 1 0 7,20 Z M 17,18 A 2.5,2.5 0 1 0 17,13 A 2.5,2.5 0 1 0 17,18 Z"
+                                              Stroke="{Binding NoteIconColor}"
+                                              StrokeThickness="1.8"
+                                              StrokeLineCap="Round"
+                                              StrokeLineJoin="Round"
+                                              Aspect="Uniform"
+                                              WidthRequest="19"
+                                              HeightRequest="19"
+                                              HorizontalOptions="Center"
+                                              VerticalOptions="Center" />
+                                    </Border>
+
+                                    <!-- Título y carpeta/álbum -->
+                                    <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                        <Label Text="{Binding Title}"
+                                               TextColor="White"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding AlbumName}"
+                                               TextColor="#9A94A6"
+                                               FontSize="12"
+                                               LineBreakMode="TailTruncation" />
+                                    </VerticalStackLayout>
+
+                                    <!-- Botón Favorito (Corazón vectorial limpio) -->
+                                    <Grid Grid.Column="2"
+                                          WidthRequest="40"
+                                          HeightRequest="40"
+                                          BackgroundColor="Transparent"
+                                          VerticalOptions="Center">
+                                        <Grid.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnToggleFavoriteTapped" CommandParameter="{Binding .}" />
+                                        </Grid.GestureRecognizers>
+                                        <Path Data="M 12,21.35 L 10.55,20.03 C 5.4,15.36 2,12.27 2,8.5 C 2,5.41 4.42,3 7.5,3 C 9.24,3 10.91,3.81 12,5.08 C 13.09,3.81 14.76,3 16.5,3 C 19.58,3 22,5.41 22,8.5 C 22,12.27 18.6,15.36 13.45,20.03 L 12,21.35 Z"
+                                              Fill="{Binding FavoriteFillColor}"
+                                              Stroke="{Binding FavoriteStrokeColor}"
+                                              StrokeThickness="1.8"
+                                              Aspect="Uniform"
+                                              WidthRequest="20"
+                                              HeightRequest="20"
+                                              HorizontalOptions="Center"
+                                              VerticalOptions="Center" />
+                                    </Grid>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <!-- LISTA DE ÁLBUMES / CARPETAS -->
+                <CollectionView x:Name="AlbumsCollectionView"
+                                IsVisible="False"
+                                SelectionMode="None"
+                                ItemSizingStrategy="MeasureFirstItem">
+                    <CollectionView.EmptyView>
+                        <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="10" Padding="24">
+                            <Path Data="M 12,2 A 10,10 0 1 0 12,22 A 10,10 0 1 0 12,2 Z M 12,9 A 3,3 0 1 0 12,15 A 3,3 0 1 0 12,9 Z"
+                                  Stroke="#4A3F5E"
+                                  StrokeThickness="2"
+                                  Aspect="Uniform"
+                                  WidthRequest="38"
+                                  HeightRequest="38"
+                                  HorizontalOptions="Center" />
+                            <Label Text="No se encontraron carpetas con música."
+                                   TextColor="#7E778C"
+                                   FontSize="14"
+                                   HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="local:MusicAlbum">
+                            <Border Margin="0,5"
+                                    Padding="12,11"
+                                    BackgroundColor="#221F2A"
+                                    Stroke="#2D2938"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 14">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnAlbumCardTapped" CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                                    <!-- Icono vectorial de disco/álbum -->
+                                    <Border Grid.Column="0"
+                                            BackgroundColor="#2A1F3D"
+                                            Stroke="#5B348A"
+                                            StrokeThickness="1"
+                                            StrokeShape="RoundRectangle 10"
+                                            WidthRequest="44"
+                                            HeightRequest="44"
+                                            VerticalOptions="Center">
+                                        <Path Data="M 12,2 A 10,10 0 1 0 12,22 A 10,10 0 1 0 12,2 Z M 12,9 A 3,3 0 1 0 12,15 A 3,3 0 1 0 12,9 Z"
+                                              Stroke="#C084FC"
+                                              StrokeThickness="1.8"
+                                              Aspect="Uniform"
+                                              WidthRequest="22"
+                                              HeightRequest="22"
+                                              HorizontalOptions="Center"
+                                              VerticalOptions="Center" />
+                                    </Border>
+
+                                    <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                        <Label Text="{Binding Name}"
+                                               TextColor="White"
+                                               FontSize="15"
+                                               FontAttributes="Bold"
+                                               LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding TrackCountText}"
+                                               TextColor="#A855F7"
+                                               FontSize="12" />
+                                    </VerticalStackLayout>
+
+                                    <Path Grid.Column="2"
+                                          Data="M 9,6 L 15,12 L 9,18"
+                                          Stroke="#9A94A6"
+                                          StrokeThickness="2"
+                                          StrokeLineCap="Round"
+                                          StrokeLineJoin="Round"
+                                          Aspect="Uniform"
+                                          WidthRequest="14"
+                                          HeightRequest="14"
+                                          VerticalOptions="Center"
+                                          Margin="4,0" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Grid>
+
+            <!-- FILA 4: MINI REPRODUCTOR INFERIOR -->
+            <Border x:Name="MiniPlayerBar"
+                    Grid.Row="4"
+                    BackgroundColor="#221A2E"
+                    Stroke="#38294D"
+                    StrokeThickness="1"
+                    Padding="0">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnMiniPlayerTapped" />
+                </Border.GestureRecognizers>
+                <VerticalStackLayout Spacing="0">
+                    <!-- Barra de progreso fina superior del mini-reproductor -->
+                    <ProgressBar x:Name="MiniProgressBar"
+                                 Progress="0"
+                                 ProgressColor="#A855F7"
+                                 BackgroundColor="#322840"
+                                 HeightRequest="3" />
+
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" Padding="12,8,14,10" ColumnSpacing="12">
+                        <!-- Miniatura de carátula -->
+                        <Border Grid.Column="0"
+                                WidthRequest="46"
+                                HeightRequest="46"
+                                BackgroundColor="#361E52"
+                                Stroke="#6D35A8"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 10"
+                                VerticalOptions="Center">
+                            <Grid>
+                                <Path Data="M 9,18 V 6 L 19,4 V 16 M 7,20 A 2.5,2.5 0 1 0 7,15 A 2.5,2.5 0 1 0 7,20 Z M 17,18 A 2.5,2.5 0 1 0 17,13 A 2.5,2.5 0 1 0 17,18 Z"
+                                      Stroke="#D8B4FE"
+                                      StrokeThickness="1.8"
+                                      StrokeLineCap="Round"
+                                      StrokeLineJoin="Round"
+                                      Aspect="Uniform"
+                                      WidthRequest="20"
+                                      HeightRequest="20"
+                                      HorizontalOptions="Center"
+                                      VerticalOptions="Center" />
+                                <Image x:Name="ImgMiniCover"
+                                       Aspect="AspectFill"
+                                       IsVisible="False" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Título y subtítulo en el mini reproductor -->
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                            <Label x:Name="LblMiniTrackTitle"
+                                   Text="Selecciona una canción"
+                                   TextColor="White"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   LineBreakMode="TailTruncation" />
+                            <Label x:Name="LblMiniAlbum"
+                                   Text="Toca para abrir el reproductor"
+                                   TextColor="#A298B5"
+                                   FontSize="12"
+                                   LineBreakMode="TailTruncation" />
+                        </VerticalStackLayout>
+
+                        <!-- Botón circular Play/Pause vectorial del mini reproductor -->
+                        <Border Grid.Column="2"
+                                WidthRequest="40"
+                                HeightRequest="40"
+                                BackgroundColor="#2E2040"
+                                Stroke="#8B3DFF"
+                                StrokeThickness="1.5"
+                                StrokeShape="RoundRectangle 20"
+                                VerticalOptions="Center">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnPlayPauseClicked" />
+                            </Border.GestureRecognizers>
+                            <Grid HorizontalOptions="Center" VerticalOptions="Center">
+                                <Path x:Name="PathMiniPlay"
+                                      Data="M 8,5 L 19,12 L 8,19 Z"
+                                      Fill="White"
+                                      Aspect="Uniform"
+                                      WidthRequest="15"
+                                      HeightRequest="15"
+                                      Margin="2,0,0,0"
+                                      HorizontalOptions="Center"
+                                      VerticalOptions="Center" />
+                                <Path x:Name="PathMiniPause"
+                                      IsVisible="False"
+                                      Data="M 6,5 H 10 V 19 H 6 Z M 14,5 H 18 V 19 H 14 Z"
+                                      Fill="White"
+                                      Aspect="Uniform"
+                                      WidthRequest="14"
+                                      HeightRequest="14"
+                                      HorizontalOptions="Center"
+                                      VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Botón Siguiente vectorial del mini reproductor -->
+                        <Grid Grid.Column="3"
+                              WidthRequest="38"
+                              HeightRequest="38"
+                              BackgroundColor="Transparent"
+                              VerticalOptions="Center">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnNextClicked" />
+                            </Grid.GestureRecognizers>
+                            <Path Data="M 6,6 L 14.5,12 L 6,18 Z M 16,6 H 18.2 V 18 H 16 Z"
+                                  Fill="White"
+                                  Aspect="Uniform"
+                                  WidthRequest="17"
+                                  HeightRequest="17"
+                                  HorizontalOptions="Center"
+                                  VerticalOptions="Center" />
+                        </Grid>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+        </Grid>
+
+        <!-- ==================== CAPA 2: REPRODUCTOR EXPANDIDO A PANTALLA COMPLETA ==================== -->
+        <Grid x:Name="FullPlayerOverlay"
+              IsVisible="False"
+              BackgroundColor="#110F16"
+              RowDefinitions="Auto,*,Auto">
+
+            <!-- Barra superior del reproductor expandido (Flecha atrás vectorial y corazón favorito vectorial) -->
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Padding="12,10,12,6">
+                <Grid Grid.Column="0"
+                      WidthRequest="44"
+                      HeightRequest="44"
+                      BackgroundColor="Transparent">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnMinimizePlayerClicked" />
+                    </Grid.GestureRecognizers>
+                    <Path Data="M 19,12 H 5 M 12,19 L 5,12 L 12,5"
+                          Stroke="White"
+                          StrokeThickness="2.2"
+                          StrokeLineCap="Round"
+                          StrokeLineJoin="Round"
+                          Aspect="Uniform"
+                          WidthRequest="20"
+                          HeightRequest="20"
+                          HorizontalOptions="Center"
+                          VerticalOptions="Center" />
+                </Grid>
+
+                <Label Grid.Column="1"
+                       Text="REPRODUCIENDO AHORA"
+                       FontSize="11"
+                       FontAttributes="Bold"
+                       TextColor="#9A8FB0"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center" />
+
+                <Grid Grid.Column="2"
+                      WidthRequest="44"
+                      HeightRequest="44"
+                      BackgroundColor="Transparent">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnFullPlayerFavoriteClicked" />
+                    </Grid.GestureRecognizers>
+                    <Path x:Name="PathFullFavorite"
+                          Data="M 12,21.35 L 10.55,20.03 C 5.4,15.36 2,12.27 2,8.5 C 2,5.41 4.42,3 7.5,3 C 9.24,3 10.91,3.81 12,5.08 C 13.09,3.81 14.76,3 16.5,3 C 19.58,3 22,5.41 22,8.5 C 22,12.27 18.6,15.36 13.45,20.03 L 12,21.35 Z"
+                          Fill="Transparent"
+                          Stroke="#9E94AD"
+                          StrokeThickness="1.9"
+                          Aspect="Uniform"
+                          WidthRequest="22"
+                          HeightRequest="22"
+                          HorizontalOptions="Center"
+                          VerticalOptions="Center" />
+                </Grid>
+            </Grid>
+
+            <!-- Tarjeta principal con degradado morado -->
+            <Border Grid.Row="1"
+                    Margin="8,0,8,0"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 28,28,18,18"
+                    Padding="24,14,24,18">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                        <GradientStop Color="#3E225B" Offset="0.0" />
+                        <GradientStop Color="#231832" Offset="0.55" />
+                        <GradientStop Color="#17141F" Offset="1.0" />
+                    </LinearGradientBrush>
+                </Border.Background>
+
+                <Grid RowDefinitions="Auto,*,Auto,Auto,Auto" RowSpacing="14">
+
+                    <!-- Indicador superior tipo píldora (tocar para minimizar) -->
+                    <Grid Grid.Row="0" HeightRequest="18" HorizontalOptions="Fill">
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnMinimizePlayerClicked" />
+                        </Grid.GestureRecognizers>
+                        <BoxView WidthRequest="44"
+                                 HeightRequest="4"
+                                 CornerRadius="2"
+                                 Color="#9E8BB8"
+                                 HorizontalOptions="Center"
+                                 VerticalOptions="Center" />
+                    </Grid>
+
+                    <!-- Carátula grande cuadrada con esquinas redondeadas -->
+                    <Border Grid.Row="1"
+                            WidthRequest="250"
+                            HeightRequest="250"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center"
+                            Stroke="#6B3FA0"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 22"
+                            BackgroundColor="#1D112B">
+                        <Grid>
+                            <!-- Arte generativo por defecto si el MP3 no trae carátula -->
+                            <Grid>
+                                <Grid.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                        <GradientStop Color="#4C1D95" Offset="0.0" />
+                                        <GradientStop Color="#831843" Offset="0.5" />
+                                        <GradientStop Color="#1E1B4B" Offset="1.0" />
+                                    </LinearGradientBrush>
+                                </Grid.Background>
+                                <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="12" Padding="18">
+                                    <Path Data="M 9,18 V 5 L 21,3 V 16 M 6,21 A 3,3 0 1 0 6,15 A 3,3 0 1 0 6,21 Z M 18,19 A 3,3 0 1 0 18,13 A 3,3 0 1 0 18,19 Z"
+                                          Stroke="#E9D5FF"
+                                          StrokeThickness="2"
+                                          StrokeLineCap="Round"
+                                          StrokeLineJoin="Round"
+                                          Aspect="Uniform"
+                                          WidthRequest="52"
+                                          HeightRequest="52"
+                                          HorizontalOptions="Center" />
+                                    <Label x:Name="LblCoverArtTitle"
+                                           Text="♪"
+                                           TextColor="White"
+                                           FontSize="16"
+                                           FontAttributes="Bold"
+                                           HorizontalTextAlignment="Center"
+                                           MaxLines="2"
+                                           LineBreakMode="TailTruncation" />
+                                </VerticalStackLayout>
+                            </Grid>
+
+                            <!-- Imagen real de la carátula del MP3 cuando existe -->
+                            <Image x:Name="ImgFullCover"
+                                   Aspect="AspectFill"
+                                   IsVisible="False" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Título de canción y carpeta/álbum -->
+                    <VerticalStackLayout Grid.Row="2" Spacing="5" HorizontalOptions="Center" Padding="4,4,4,0">
+                        <Label x:Name="LblCurrentTrack"
+                               Text="Ninguna canción seleccionada"
+                               FontSize="20"
+                               FontAttributes="Bold"
+                               TextColor="White"
+                               LineBreakMode="TailTruncation"
+                               HorizontalTextAlignment="Center" />
+
+                        <Label x:Name="LblCurrentAlbum"
+                               Text="música"
+                               FontSize="14"
+                               TextColor="#A855F7"
+                               LineBreakMode="TailTruncation"
+                               HorizontalTextAlignment="Center" />
+
+                        <Label x:Name="LblTrackCounter"
+                               Text="Pista 0 de 0"
+                               FontSize="11"
+                               TextColor="#867C99"
+                               HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+
+                    <!-- Barra de progreso y tiempos -->
+                    <VerticalStackLayout Grid.Row="3" Spacing="2">
+                        <Slider x:Name="ProgressSlider"
+                                Minimum="0"
+                                Maximum="100"
+                                Value="0"
+                                MinimumTrackColor="#B366FF"
+                                MaximumTrackColor="#383046"
+                                ThumbColor="#E9D5FF"
+                                DragStarted="OnSliderDragStarted"
+                                DragCompleted="OnSliderDragCompleted" />
+
+                        <Grid ColumnDefinitions="Auto,*,Auto" Padding="4,0">
+                            <Label x:Name="LblElapsed"
+                                   Grid.Column="0"
+                                   Text="0:00"
+                                   FontSize="12"
+                                   TextColor="#ACA4BC" />
+
+                            <Label x:Name="LblStatus"
+                                   Grid.Column="1"
+                                   Text="Detenido"
+                                   FontSize="11"
+                                   TextColor="#7A708E"
+                                   HorizontalOptions="Center" />
+
+                            <Label x:Name="LblDuration"
+                                   Grid.Column="2"
+                                   Text="0:00"
+                                   FontSize="12"
+                                   TextColor="#ACA4BC" />
+                        </Grid>
+                    </VerticalStackLayout>
+
+                    <!-- CONTROLES PRINCIPALES CON ICONOS VECTORIALES ESTILIZADOS -->
+                    <Grid Grid.Row="4"
+                          ColumnDefinitions="*,*,Auto,*,*"
+                          VerticalOptions="Center"
+                          Padding="0,4,0,4">
+
+                        <!-- 1. Botón Aleatorio (Shuffle) en vector -->
+                        <Grid Grid.Column="0"
+                              WidthRequest="48"
+                              HeightRequest="48"
+                              BackgroundColor="Transparent"
+                              HorizontalOptions="Center"
+                              VerticalOptions="Center">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnShuffleClicked" />
+                            </Grid.GestureRecognizers>
+                            <Path x:Name="PathShuffle"
+                                  Data="M 16,3 H 21 V 8 M 4,20 L 21,3 M 21,16 V 21 H 16 M 15,15 L 21,21 M 4,4 L 9,9"
+                                  Stroke="#7A6C94"
+                                  StrokeThickness="2.1"
+                                  StrokeLineCap="Round"
+                                  StrokeLineJoin="Round"
+                                  Aspect="Uniform"
+                                  WidthRequest="20"
+                                  HeightRequest="20"
+                                  HorizontalOptions="Center"
+                                  VerticalOptions="Center" />
+                            <BoxView x:Name="DotShuffleActive"
+                                     IsVisible="False"
+                                     WidthRequest="5"
+                                     HeightRequest="5"
+                                     CornerRadius="2.5"
+                                     Color="#C084FC"
+                                     HorizontalOptions="Center"
+                                     VerticalOptions="End"
+                                     Margin="0,0,0,4" />
+                        </Grid>
+
+                        <!-- 2. Botón Anterior (|◀) en vector -->
+                        <Grid Grid.Column="1"
+                              WidthRequest="52"
+                              HeightRequest="52"
+                              BackgroundColor="Transparent"
+                              HorizontalOptions="Center"
+                              VerticalOptions="Center">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnPreviousClicked" />
+                            </Grid.GestureRecognizers>
+                            <Path Data="M 6,6 H 8.3 V 18 H 6 Z M 10,12 L 18.5,6 V 18 Z"
+                                  Fill="White"
+                                  Aspect="Uniform"
+                                  WidthRequest="22"
+                                  HeightRequest="22"
+                                  HorizontalOptions="Center"
+                                  VerticalOptions="Center" />
+                        </Grid>
+
+                        <!-- 3. Botón Central Play/Pause con borde morado brillante e icono vectorial -->
+                        <Border Grid.Column="2"
+                                WidthRequest="74"
+                                HeightRequest="74"
+                                BackgroundColor="#27183B"
+                                Stroke="#9333EA"
+                                StrokeThickness="2"
+                                StrokeShape="RoundRectangle 37"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnPlayPauseClicked" />
+                            </Border.GestureRecognizers>
+                            <Grid HorizontalOptions="Center" VerticalOptions="Center">
+                                <Button x:Name="BtnPlayPause" IsVisible="False" />
+
+                                <Path x:Name="PathFullPlay"
+                                      Data="M 8,5 L 19,12 L 8,19 Z"
+                                      Fill="White"
+                                      Aspect="Uniform"
+                                      WidthRequest="25"
+                                      HeightRequest="25"
+                                      Margin="3,0,0,0"
+                                      HorizontalOptions="Center"
+                                      VerticalOptions="Center" />
+
+                                <Path x:Name="PathFullPause"
+                                      IsVisible="False"
+                                      Data="M 6,5 H 10 V 19 H 6 Z M 14,5 H 18 V 19 H 14 Z"
+                                      Fill="White"
+                                      Aspect="Uniform"
+                                      WidthRequest="23"
+                                      HeightRequest="23"
+                                      HorizontalOptions="Center"
+                                      VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+
+                        <!-- 4. Botón Siguiente (▶|) en vector -->
+                        <Grid Grid.Column="3"
+                              WidthRequest="52"
+                              HeightRequest="52"
+                              BackgroundColor="Transparent"
+                              HorizontalOptions="Center"
+                              VerticalOptions="Center">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnNextClicked" />
+                            </Grid.GestureRecognizers>
+                            <Path Data="M 5.5,6 L 14,12 L 5.5,18 Z M 15.7,6 H 18 V 18 H 15.7 Z"
+                                  Fill="White"
+                                  Aspect="Uniform"
+                                  WidthRequest="22"
+                                  HeightRequest="22"
+                                  HorizontalOptions="Center"
+                                  VerticalOptions="Center" />
+                        </Grid>
+
+                        <!-- 5. Botón Repetir (Repeat) en vector -->
+                        <Grid Grid.Column="4"
+                              WidthRequest="48"
+                              HeightRequest="48"
+                              BackgroundColor="Transparent"
+                              HorizontalOptions="Center"
+                              VerticalOptions="Center">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnRepeatClicked" />
+                            </Grid.GestureRecognizers>
+                            <Path x:Name="PathRepeat"
+                                  Data="M 17,2 L 21,6 L 17,10 M 3,11 V 9 C 3,6.8 4.8,5 7,5 H 21 M 7,22 L 3,18 L 7,14 M 21,13 V 15 C 21,17.2 19.2,19 17,19 H 3"
+                                  Stroke="#7A6C94"
+                                  StrokeThickness="2.1"
+                                  StrokeLineCap="Round"
+                                  StrokeLineJoin="Round"
+                                  Aspect="Uniform"
+                                  WidthRequest="20"
+                                  HeightRequest="20"
+                                  HorizontalOptions="Center"
+                                  VerticalOptions="Center" />
+                            <BoxView x:Name="DotRepeatActive"
+                                     IsVisible="False"
+                                     WidthRequest="5"
+                                     HeightRequest="5"
+                                     CornerRadius="2.5"
+                                     Color="#C084FC"
+                                     HorizontalOptions="Center"
+                                     VerticalOptions="End"
+                                     Margin="0,0,0,4" />
+                        </Grid>
+                    </Grid>
+
+                </Grid>
+            </Border>
+
+            <!-- Barra inferior con flecha vectorial hacia abajo para minimizar el reproductor -->
+            <Border Grid.Row="2"
+                    Margin="12,8,12,12"
+                    HeightRequest="46"
+                    BackgroundColor="#201C29"
+                    Stroke="#302A3D"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 16">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnMinimizePlayerClicked" />
+                </Border.GestureRecognizers>
+                <Path Data="M 6,9 L 12,15 L 18,9"
+                      Stroke="#D0C8E0"
+                      StrokeThickness="2.4"
+                      StrokeLineCap="Round"
+                      StrokeLineJoin="Round"
+                      Aspect="Uniform"
+                      WidthRequest="18"
+                      HeightRequest="18"
+                      HorizontalOptions="Center"
+                      VerticalOptions="Center" />
+            </Border>
+
+        </Grid>
 
     </Grid>
 </ContentPage>

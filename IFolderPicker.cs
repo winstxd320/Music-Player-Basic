@@ -2,7 +2,6 @@
 
 public interface IFolderPicker
 {
-    Task<List<MusicTrack>> PickFolderAndGetTracksAsync();
-    Task<List<MusicTrack>> LoadSavedFolderTracksAsync();
+    Task<List<MusicTrack>> LoadDeviceTracksAsync();
     bool FileExists(string uriString);
 }

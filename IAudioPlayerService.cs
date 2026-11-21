@@ -3,7 +3,12 @@ namespace MiReproductorMAUI;
 public interface IAudioPlayerService
 {
     event Action? PlaybackCompleted;
-    Task PlayAsync(string filePath);
+    event Action? NextTrackRequested;
+    event Action? PreviousTrackRequested;
+    event Action? PlaybackStateChanged;
+
+    Task PlayAsync(string filePath, string title = "", string subtitle = "");
+    byte[]? GetAlbumArtBytes(string filePath);
     void Pause();
     void Resume();
     void SeekTo(int positionMilliseconds);
